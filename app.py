@@ -3,6 +3,10 @@ import re
 import requests
 import base64
 import os
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+
 from databricks.vector_search.client import VectorSearchClient
 from databricks.sdk import WorkspaceClient
 
@@ -19,7 +23,7 @@ st.set_page_config(
 # ============================================================
 # LOGO LOADER
 # ============================================================
-LOGO_PATH = r"C:\Users\Bsoft137\Downloads\donbosco-handbook-assistant\logo\dbcy_logo.jpg"
+LOGO_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo", "dbcy_logo.jpg")
 
 def load_logo_b64(path: str) -> str:
     try:
@@ -504,10 +508,13 @@ st.markdown(f"""
 # ============================================================
 # CONFIGURATION  ← UNTOUCHED
 # ============================================================
-VECTOR_ENDPOINT_NAME = "aichatbot-vs-endpoint"
-VECTOR_INDEX_NAME    = "aichatbot.gold.handbook_vector_index"
+VECTOR_ENDPOINT_NAME = os.getenv("DATABRICKS_VECTOR_SEARCH_ENDPOINT", "aichatbot-vs-endpoint")
+VECTOR_INDEX_NAME    = "aichatbot.gold.handbook_vector_index_v2"
 SOURCE_TABLE         = "aichatbot.gold.vector_source_chunks"
-LLM_MODEL            = "databricks-meta-llama-3-3-70b-instruct"
+LLM_MODEL            = os.getenv(
+    "DATABRICKS_AI_GATEWAY_MODEL",
+    "system.ai.meta-llama-3-3-70b-instruct"
+)
 
 # ============================================================
 # SESSION STATE  ← UNTOUCHED
@@ -532,7 +539,22 @@ if "db_ready" not in st.session_state:
         st.session_state.db_ready = True
     except Exception as e:
         st.session_state.db_ready = False
-        st.session_state.db_error = str(e)
+        if VECTOR_ENDPOINT_NAME == LLM_MODEL:
+            st.session_state.db_error = (
+                f"DATABRICKS_VECTOR_SEARCH_ENDPOINT is set to the model-serving endpoint "
+                f"'{LLM_MODEL}', but this app needs a Vector Search endpoint for index "
+                f"'{VECTOR_INDEX_NAME}'. Set it to the Vector Search endpoint name "
+                f"(the configured default is 'aichatbot-vs-endpoint'), then restart the app. "
+                f"Details: {e}"
+            )
+        else:
+            st.session_state.db_error = (
+                f"Could not open Vector Search index '{VECTOR_INDEX_NAME}' on endpoint "
+                f"'{VECTOR_ENDPOINT_NAME}'. Verify that the endpoint exists and is ready in "
+                f"this Databricks workspace, and that the index is attached to it. Set "
+                f"DATABRICKS_VECTOR_SEARCH_ENDPOINT to the endpoint's exact name if it differs. "
+                f"Details: {e}"
+            )
 
 if not st.session_state.get("db_ready"):
     st.error(f"❌ Failed to connect: {st.session_state.get('db_error')}")
@@ -810,13 +832,23 @@ Context:
 Answer:"""
 
         w     = st.session_state.w
-        host  = w.config.host
-        token = w.config.token
+        host  = os.getenv("DATABRICKS_HOST", w.config.host).rstrip("/")
+        token = os.getenv("DATABRICKS_TOKEN") or w.config.token
+        gateway_url = os.getenv(
+            "DATABRICKS_AI_GATEWAY_BASE_URL",
+            f"{host}/ai-gateway/mlflow/v1"
+        ).rstrip("/")
+        if not token:
+            raise ValueError(
+                "Databricks authentication did not provide a token. Set DATABRICKS_TOKEN "
+                "or configure Databricks authentication for the workspace."
+            )
 
         response = requests.post(
-            f"{host}/serving-endpoints/{LLM_MODEL}/invocations",
+            f"{gateway_url}/chat/completions",
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-            json={"messages": [{"role": "user", "content": prompt}],
+            json={"model": LLM_MODEL,
+                  "messages": [{"role": "user", "content": prompt}],
                   "max_tokens": 2500, "temperature": 0.2},
             timeout=60
         )
