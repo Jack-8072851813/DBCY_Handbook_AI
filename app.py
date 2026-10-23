@@ -17,7 +17,7 @@ st.set_page_config(
     page_title="Don Bosco College of Arts & Science – Handbook AI",
     page_icon="🎓",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="auto"
 )
 
 # ============================================================
@@ -38,18 +38,18 @@ logo_b64 = load_logo_b64(LOGO_PATH)
 logo_img_html = (
     f'<img src="data:image/jpeg;base64,{logo_b64}" '
     f'style="height:76px;width:76px;border-radius:50%;object-fit:cover;'
-    f'border:3px solid #D4AF37;box-shadow:0 4px 16px rgba(0,0,0,0.3);" alt="Don Bosco Logo"/>'
+    f'border:3px solid #f5f5f7;box-shadow:0 4px 16px rgba(0,0,0,0.12);" alt="Don Bosco Logo"/>'
     if logo_b64 else
-    '<div style="height:76px;width:76px;border-radius:50%;background:linear-gradient(135deg,#D4AF37,#f0d060);'
+    '<div style="height:76px;width:76px;border-radius:50%;background:linear-gradient(135deg,#f5f5f7,#dedee0);'
     'display:flex;align-items:center;justify-content:center;font-size:2.2rem;'
     'border:3px solid #ffffff;box-shadow:0 4px 16px rgba(0,0,0,0.25);">🎓</div>'
 )
 sidebar_logo_html = (
     f'<img src="data:image/jpeg;base64,{logo_b64}" '
     f'style="height:64px;width:64px;border-radius:50%;object-fit:cover;'
-    f'border:2px solid #D4AF37;display:block;margin:0 auto;" alt="Logo"/>'
+    f'border:2px solid #f5f5f7;display:block;margin:0 auto;" alt="Logo"/>'
     if logo_b64 else
-    '<div style="height:64px;width:64px;border-radius:50%;background:linear-gradient(135deg,#D4AF37,#f0d060);'
+    '<div style="height:64px;width:64px;border-radius:50%;background:linear-gradient(135deg,#f5f5f7,#dedee0);'
     'display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto;">🎓</div>'
 )
 
@@ -58,8 +58,7 @@ sidebar_logo_html = (
 # ============================================================
 st.markdown("""
 <style>
-/* ── Google Fonts ── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 /* ── Base ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; }
@@ -466,24 +465,879 @@ div[data-testid="stChatMessageContent"] code    {
    BOTTOM ANCHOR
 ───────────────────────────────────────── */
 #chat-bottom { height: 1px; display: block; }
-</style>
-""", unsafe_allow_html=True)
 
-# ── Auto-scroll JS — fires on every Streamlit re-render ──
-st.markdown("""
-<script>
-(function autoScroll(){
-    function go(){
-        var el = document.getElementById('chat-bottom');
-        if(el){ el.scrollIntoView({behavior:'smooth',block:'end'}); return; }
-        var mc = document.querySelector('section.main .block-container');
-        if(mc) mc.scrollTop = mc.scrollHeight;
+/* ─────────────────────────────────────────
+   NEUTRAL, ACCESSIBLE CHAT THEME
+───────────────────────────────────────── */
+:root {
+    color-scheme: light;
+    --canvas: #f3f3f3;
+    --neutralLayer1: #ffffff;
+    --neutralLayer2: #f3f3f3;
+    --neutralLayer3: #e9e9e9;
+    --neutralLayer4: #dedede;
+    --text-primary: #242424;
+    --text-secondary: #616161;
+    --border-subtle: rgba(36,36,36,0.12);
+    --accent: #0078d4;
+    --success: #107c41;
+    --warning: #d83b01;
+    --surface-raised: var(--neutralLayer1);
+    --surface: var(--neutralLayer2);
+    --shadow-soft: 0 1px 3px rgba(0,0,0,0.08);
+    --font-body: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-body: 1rem;
+    --font-size-lg: 1.25rem;
+    --font-size-title: clamp(1.8rem, 4vw, 2.75rem);
+    --line-height-body: 1.5;
+}
+
+html, body, [class*="css"] {
+    font-family: var(--font-body) !important;
+    font-optical-sizing: auto;
+    color: var(--text-primary);
+    font-size: var(--font-size-body);
+    line-height: var(--line-height-body);
+}
+
+.stApp {
+    background: var(--canvas) !important;
+    color: var(--text-primary);
+    transition: background-color 0.16s ease, color 0.16s ease;
+}
+
+section.main > div,
+[data-testid="stMainBlockContainer"] {
+    background: transparent;
+}
+
+.db-header {
+    background: var(--neutralLayer1);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    box-shadow: var(--shadow-soft);
+    animation-duration: 0.16s;
+}
+.db-header::before, .db-header::after { display: none; }
+.db-header-inner { padding: 1.25rem 1.5rem; }
+.db-header img, .db-header > div img {
+    border-color: var(--border-subtle) !important;
+    box-shadow: none !important;
+}
+.db-college-name {
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: clamp(1.25rem, 2vw, 1.75rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    text-shadow: none;
+}
+.db-college-location {
+    color: var(--text-secondary);
+    letter-spacing: 0.06em;
+}
+.db-header-tagline { color: var(--text-secondary); }
+.db-live-badge {
+    background: color-mix(in srgb, var(--accent) 8%, var(--neutralLayer1));
+    border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+    color: var(--accent);
+}
+.db-live-dot { background: var(--success); }
+
+.welcome-wrap { padding: clamp(2rem, 6vw, 5rem) 1rem 2.5rem; }
+.welcome-icon { filter: none; }
+.welcome-title {
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: var(--font-size-title);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.035em;
+}
+.welcome-sub {
+    color: var(--text-secondary);
+    font-size: var(--font-size-body);
+    line-height: 1.6;
+}
+.suggest-card {
+    background: var(--neutralLayer1);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    box-shadow: none;
+    transition: border-color 0.14s ease, background-color 0.14s ease, box-shadow 0.14s ease;
+}
+.suggest-card:hover {
+    border-color: color-mix(in srgb, var(--accent) 48%, transparent);
+    background: var(--neutralLayer2);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.suggest-card-text {
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    line-height: 1.45;
+}
+.suggest-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 0.85rem;
+    max-width: 920px;
+}
+
+.stChatMessage {
+    background: var(--neutralLayer1) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: 12px !important;
+    box-shadow: var(--shadow-soft) !important;
+    animation-duration: 0.14s !important;
+}
+[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"])
+  div[data-testid="stChatMessageContent"],
+[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"])
+  div[data-testid="stChatMessageContent"] {
+    background: transparent !important;
+    color: var(--text-primary) !important;
+    line-height: 1.6 !important;
+}
+div[data-testid="stChatMessageContent"] strong,
+div[data-testid="stChatMessageContent"] h1,
+div[data-testid="stChatMessageContent"] h2,
+div[data-testid="stChatMessageContent"] h3 {
+    color: var(--text-primary);
+    font-family: var(--font-body);
+}
+div[data-testid="stChatMessageContent"] a {
+    color: var(--accent);
+    text-underline-offset: 0.15em;
+}
+div[data-testid="stChatMessageContent"] code {
+    background: var(--neutralLayer2);
+    color: var(--text-primary);
+}
+
+.stChatInputContainer {
+    border-top: 1px solid var(--border-subtle) !important;
+    background: color-mix(in srgb, var(--neutralLayer1) 92%, transparent) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+.stChatInputContainer textarea {
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: 8px !important;
+    background: var(--neutralLayer1) !important;
+    color: var(--text-primary) !important;
+    box-shadow: none !important;
+    font-family: var(--font-body) !important;
+    font-size: var(--font-size-body) !important;
+    transition: border-color 0.14s ease, box-shadow 0.14s ease !important;
+}
+.stChatInputContainer textarea:focus {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 24%, transparent) !important;
+}
+.stChatInputContainer button {
+    background: var(--accent) !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    transition: filter 0.14s ease, background-color 0.14s ease !important;
+}
+.stChatInputContainer button:hover {
+    filter: brightness(0.92);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent) !important;
+}
+
+[data-testid="stSidebar"] {
+    background: var(--neutralLayer1) !important;
+    border-right: 1px solid var(--border-subtle) !important;
+    box-shadow: none !important;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+[data-testid="stSidebar"] * { color: var(--text-primary) !important; }
+[data-testid="stSidebar"] h3 {
+    color: var(--text-secondary) !important;
+    font-family: var(--font-body) !important;
+    font-size: var(--font-size-xs) !important;
+    letter-spacing: 0.08em !important;
+    border-bottom-color: var(--border-subtle) !important;
+}
+[data-testid="stSidebar"] hr { border-color: var(--border-subtle) !important; }
+[data-testid="stSidebar"] .stButton button {
+    background: var(--neutralLayer2) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: 8px !important;
+    transition: background-color 0.14s ease, border-color 0.14s ease !important;
+}
+[data-testid="stSidebar"] .stButton button:hover {
+    background: var(--neutralLayer3) !important;
+    border-color: color-mix(in srgb, var(--accent) 40%, transparent) !important;
+}
+.qs-chip {
+    background: var(--surface);
+    border-color: var(--border-subtle);
+    color: var(--text-secondary) !important;
+}
+.qs-chip:hover {
+    background: color-mix(in srgb, var(--accent) 8%, var(--neutralLayer1));
+    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+    color: var(--accent) !important;
+}
+.status-pill {
+    background: color-mix(in srgb, var(--success) 8%, var(--neutralLayer1));
+    border-color: color-mix(in srgb, var(--success) 25%, transparent);
+    color: var(--success) !important;
+}
+.status-dot { background: var(--success); }
+.thinking-label { color: var(--text-secondary); }
+.cache-badge {
+    display: inline-block;
+    color: var(--text-secondary);
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 2px 9px;
+    font-size: 0.7rem;
+}
+.thinking-dots span,
+.thinking-dots span:nth-child(2),
+.thinking-dots span:nth-child(3) { background: var(--accent); }
+::-webkit-scrollbar-thumb { background: rgba(29,29,31,0.2); }
+::-webkit-scrollbar-thumb:hover { background: rgba(29,29,31,0.34); }
+.stSpinner > div { border-top-color: var(--accent) !important; }
+
+body:has([data-testid="stToggle"] [role="switch"][aria-checked="true"]) {
+    color-scheme: dark;
+    --canvas: #111111;
+    --neutralLayer1: #1b1b1b;
+    --neutralLayer2: #202020;
+    --neutralLayer3: #292929;
+    --neutralLayer4: #333333;
+    --text-primary: #f5f5f5;
+    --text-secondary: #c8c8c8;
+    --border-subtle: rgba(255,255,255,0.12);
+    --accent: #4da6ff;
+    --success: #6ccb8b;
+    --warning: #ff8c65;
+    --surface-raised: var(--neutralLayer1);
+    --surface: var(--neutralLayer2);
+    --shadow-soft: 0 1px 3px rgba(0,0,0,0.24);
+}
+body:has([data-testid="stToggle"] [role="switch"][aria-checked="true"]) .db-live-badge {
+    background: color-mix(in srgb, var(--accent) 14%, var(--neutralLayer1));
+    border-color: color-mix(in srgb, var(--accent) 32%, transparent);
+}
+body:has([data-testid="stToggle"] [role="switch"][aria-checked="true"])
+  [data-testid="stSidebar"] .stButton button:hover {
+    background: var(--neutralLayer3) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html:focus-within { scroll-behavior: auto !important; }
+    .db-header, .welcome-wrap, .stChatMessage,
+    .thinking-dots span, .status-dot, .db-live-dot {
+        animation: reducedFade 0.12s ease-out both !important;
+        transform: none !important;
     }
-    go();
-    setTimeout(go, 150);
-    setTimeout(go, 500);
-})();
-</script>
+    *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+@keyframes reducedFade {
+    from { opacity: 0.6; }
+    to { opacity: 1; }
+}
+@media (max-width: 640px) {
+    .db-header-inner { gap: 0.8rem; padding: 1rem; }
+    .db-header-inner > img,
+    .db-header-inner > div:first-child { width: 52px !important; height: 52px !important; }
+    .db-live-badge { padding: 0.3rem 0.65rem; font-size: var(--font-size-xs); }
+    .suggest-grid { grid-template-columns: 1fr; }
+    .welcome-wrap { padding-top: 2rem; }
+}
+
+/* ─────────────────────────────────────────
+   ENTERPRISE CHAT DESIGN TOKENS & COMPONENTS
+───────────────────────────────────────── */
+:root {
+    color-scheme: light;
+    --canvas: #EFF6FF;
+    --surface: #FFFFFF;
+    --surface-muted: #DBEAFE;
+    --sidebar: #102A56;
+    --text-primary: #0F172A;
+    --text-secondary: #334E68;
+    --text-placeholder: #647FA3;
+    --accent: #1D4ED8;
+    --accent-hover: #1E40AF;
+    --ai-accent: #2563EB;
+    --border-subtle: #BFDBFE;
+    --error: #DC2626;
+    --warning: #D97706;
+    --surface-raised: var(--surface);
+    --shadow-soft: 0 1px 3px rgba(15,23,42,0.08);
+    --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-code: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+    --radius-control: 10px;
+    --radius-card: 14px;
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-6: 24px;
+}
+
+html, body, [class*="css"], button, input, textarea {
+    font-family: var(--font-body) !important;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+}
+html, body { background: var(--canvas); }
+.stApp {
+    background: var(--canvas) !important;
+    color: var(--text-primary) !important;
+}
+section.main > div,
+[data-testid="stMainBlockContainer"] { background: transparent !important; }
+[data-testid="stMainBlockContainer"] {
+    max-width: 1120px;
+    padding-left: clamp(1rem, 3vw, 2.5rem);
+    padding-right: clamp(1rem, 3vw, 2.5rem);
+}
+
+.db-header {
+    background: var(--surface) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-card) !important;
+    box-shadow: var(--shadow-soft) !important;
+    margin-bottom: var(--space-6) !important;
+    animation: fadeInUp 0.2s ease-out both !important;
+}
+.db-header::before, .db-header::after { display: none !important; }
+.db-header-inner { gap: var(--space-4); padding: 1rem 1.25rem !important; }
+.db-header img, .db-header-inner > div:first-child {
+    border-color: var(--border-subtle) !important;
+    box-shadow: none !important;
+}
+.db-college-name {
+    color: var(--text-primary) !important;
+    font: 600 1.2rem/1.3 var(--font-body) !important;
+    letter-spacing: -0.025em !important;
+    text-shadow: none !important;
+}
+.db-college-location {
+    color: var(--text-secondary) !important;
+    font-size: 0.75rem !important;
+    letter-spacing: 0.025em !important;
+}
+.db-header-tagline { color: var(--text-secondary) !important; font-size: 0.8rem !important; }
+.db-live-badge {
+    color: var(--ai-accent) !important;
+    background: rgba(13,148,136,0.08) !important;
+    border: 1px solid rgba(13,148,136,0.2) !important;
+    font-size: 0.7rem !important;
+}
+.db-live-dot, .status-dot { background: var(--ai-accent) !important; animation: none !important; }
+
+.welcome-wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: clamp(2rem, 7vh, 4.5rem) 0 2rem !important;
+    animation: fadeInUp 0.2s ease-out both !important;
+}
+.welcome-icon { filter: none !important; }
+.welcome-title {
+    color: var(--text-primary) !important;
+    font: 600 clamp(2rem, 4vw, 2.5rem)/1.2 var(--font-body) !important;
+    letter-spacing: -0.04em !important;
+}
+.welcome-sub {
+    color: var(--text-secondary) !important;
+    font-size: 1rem !important;
+    line-height: 1.65 !important;
+    max-width: 620px !important;
+}
+.suggest-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)) !important;
+    gap: var(--space-3) !important;
+    max-width: 920px !important;
+}
+.suggest-card {
+    min-height: 100%;
+    padding: var(--space-4) !important;
+    background: var(--surface) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-card) !important;
+    box-shadow: none !important;
+    transition: background-color 0.18s ease, border-color 0.18s ease,
+                box-shadow 0.18s ease, transform 0.18s ease !important;
+}
+.suggest-card:hover {
+    background: var(--surface-muted) !important;
+    border-color: rgba(37,99,235,0.35) !important;
+    box-shadow: 0 3px 10px rgba(15,23,42,0.07) !important;
+    transform: translateY(-1px) !important;
+}
+.suggest-card-icon { font-size: 1.15rem !important; }
+.suggest-card-text {
+    color: var(--text-secondary) !important;
+    font-size: 0.875rem !important;
+    line-height: 1.5 !important;
+}
+
+.stChatMessage {
+    background: var(--surface) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-card) !important;
+    box-shadow: var(--shadow-soft) !important;
+    margin-bottom: var(--space-3) !important;
+    animation: fadeInUp 0.2s ease-out both !important;
+}
+[data-testid="stChatMessageContent"] {
+    color: var(--text-primary) !important;
+    font-size: 0.96rem !important;
+    line-height: 1.65 !important;
+    overflow-wrap: anywhere;
+}
+[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"])
+  div[data-testid="stChatMessageContent"],
+[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"])
+  div[data-testid="stChatMessageContent"] {
+    background: transparent !important;
+    border: 0 !important;
+    color: var(--text-primary) !important;
+}
+[data-testid="stChatMessageContent"] p { margin: 0.45rem 0 !important; }
+[data-testid="stChatMessageContent"] h1,
+[data-testid="stChatMessageContent"] h2,
+[data-testid="stChatMessageContent"] h3,
+[data-testid="stChatMessageContent"] h4 {
+    color: var(--text-primary) !important;
+    font-family: var(--font-body) !important;
+    font-weight: 600 !important;
+    line-height: 1.35 !important;
+    margin: 1rem 0 0.5rem !important;
+}
+[data-testid="stChatMessageContent"] ul,
+[data-testid="stChatMessageContent"] ol { padding-left: 1.5rem !important; }
+[data-testid="stChatMessageContent"] li { margin: 0.25rem 0 !important; }
+[data-testid="stChatMessageContent"] a {
+    color: var(--accent) !important;
+    text-underline-offset: 0.15em;
+}
+[data-testid="stChatMessageContent"] a:hover { color: var(--accent-hover) !important; }
+[data-testid="stChatMessageContent"] blockquote {
+    border-left: 3px solid var(--accent) !important;
+    background: var(--surface-muted);
+    color: var(--text-secondary) !important;
+    margin: 0.75rem 0 !important;
+    padding: 0.5rem 1rem !important;
+}
+[data-testid="stChatMessageContent"] table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    border-collapse: collapse;
+    border: 1px solid var(--border-subtle);
+}
+[data-testid="stChatMessageContent"] th,
+[data-testid="stChatMessageContent"] td {
+    padding: 0.55rem 0.75rem !important;
+    border: 1px solid var(--border-subtle) !important;
+    text-align: left;
+}
+[data-testid="stChatMessageContent"] th {
+    background: var(--surface-muted) !important;
+    font-weight: 600 !important;
+}
+[data-testid="stChatMessageContent"] pre,
+[data-testid="stChatMessageContent"] code,
+[data-testid="stCodeBlock"] code {
+    font-family: var(--font-code) !important;
+    font-size: 0.84rem !important;
+}
+[data-testid="stChatMessageContent"] pre {
+    max-width: 100%;
+    overflow-x: auto;
+    background: var(--surface-muted) !important;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-control) !important;
+    padding: 0.85rem 1rem !important;
+}
+[data-testid="stChatMessageContent"] :not(pre) > code {
+    background: var(--surface-muted) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-subtle);
+    border-radius: 5px;
+    padding: 0.1rem 0.35rem;
+}
+
+.stChatInputContainer {
+    border-top: 1px solid var(--border-subtle) !important;
+    background: rgba(248,250,252,0.94) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding-top: var(--space-3) !important;
+}
+.stChatInputContainer textarea {
+    background: var(--surface) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-control) !important;
+    box-shadow: 0 1px 3px rgba(15,23,42,0.06) !important;
+    font: 400 0.96rem/1.5 var(--font-body) !important;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease !important;
+}
+.stChatInputContainer textarea::placeholder { color: var(--text-placeholder) !important; }
+.stChatInputContainer textarea:focus {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.14) !important;
+}
+
+[data-testid="stSidebar"] {
+    background: var(--sidebar) !important;
+    border-right: 1px solid rgba(226,232,240,0.12) !important;
+    box-shadow: none !important;
+    transition: background-color 0.18s ease !important;
+}
+[data-testid="stSidebar"] *,
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
+    color: #F8FAFC !important;
+}
+[data-testid="stSidebar"] h3 {
+    color: #CBD5E1 !important;
+    font: 600 0.78rem/1.4 var(--font-body) !important;
+    letter-spacing: 0.025em !important;
+    text-transform: none !important;
+    border-bottom: 1px solid rgba(226,232,240,0.16) !important;
+}
+[data-testid="stSidebar"] hr { border-color: rgba(226,232,240,0.16) !important; }
+[data-testid="stSidebar"] .stButton button {
+    width: 100% !important;
+    color: #F8FAFC !important;
+    background: rgba(248,250,252,0.06) !important;
+    border: 1px solid rgba(226,232,240,0.16) !important;
+    border-radius: var(--radius-control) !important;
+    font: 500 0.875rem var(--font-body) !important;
+    transition: background-color 0.16s ease, border-color 0.16s ease,
+                transform 0.12s ease !important;
+}
+[data-testid="stSidebar"] .stButton button:hover {
+    background: rgba(248,250,252,0.12) !important;
+    border-color: rgba(248,250,252,0.3) !important;
+}
+[data-testid="stSidebar"] .stButton button:active { transform: scale(0.985); }
+[data-testid="stSidebar"] [data-testid="stToggle"] label,
+[data-testid="stSidebar"] [data-testid="stToggle"] label p {
+    color: #CBD5E1 !important;
+    font-size: 0.85rem !important;
+}
+.qs-chip {
+    color: #CBD5E1 !important;
+    background: rgba(248,250,252,0.06) !important;
+    border: 1px solid rgba(226,232,240,0.14) !important;
+    border-radius: 999px !important;
+    transition: background-color 0.16s ease, border-color 0.16s ease !important;
+}
+.qs-chip:hover {
+    color: #FFFFFF !important;
+    background: rgba(37,99,235,0.24) !important;
+    border-color: rgba(96,165,250,0.45) !important;
+}
+.status-pill {
+    color: #5EEAD4 !important;
+    background: rgba(13,148,136,0.16) !important;
+    border-color: rgba(13,148,136,0.36) !important;
+    font-size: 0.75rem !important;
+}
+.cache-badge {
+    color: var(--text-secondary) !important;
+    background: var(--surface-muted) !important;
+    border: 1px solid var(--border-subtle) !important;
+}
+
+.stButton button, .stDownloadButton button {
+    border-radius: var(--radius-control) !important;
+    transition: background-color 0.16s ease, border-color 0.16s ease,
+                box-shadow 0.16s ease, transform 0.12s ease !important;
+}
+.stButton button:active, .stDownloadButton button:active,
+.stChatInputContainer button:active { transform: scale(0.98); }
+.stButton button:disabled, .stDownloadButton button:disabled,
+.stChatInputContainer button:disabled {
+    opacity: 0.55 !important;
+    cursor: not-allowed !important;
+}
+button:focus-visible, textarea:focus-visible, input:focus-visible,
+[role="switch"]:focus-visible {
+    outline: 3px solid rgba(37,99,235,0.65) !important;
+    outline-offset: 2px !important;
+}
+.stChatInputContainer button {
+    color: #FFFFFF !important;
+    background: var(--accent) !important;
+    border: 1px solid var(--accent) !important;
+    border-radius: var(--radius-control) !important;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.12) !important;
+    transition: background-color 0.16s ease, border-color 0.16s ease,
+                box-shadow 0.16s ease, transform 0.12s ease !important;
+}
+.stChatInputContainer button:hover {
+    background: var(--accent-hover) !important;
+    border-color: var(--accent-hover) !important;
+    box-shadow: 0 2px 5px rgba(15,23,42,0.16) !important;
+}
+
+.thinking-label { color: var(--text-secondary) !important; font-size: 0.8rem !important; }
+.thinking-dots span,
+.thinking-dots span:nth-child(2),
+.thinking-dots span:nth-child(3) {
+    background: var(--ai-accent) !important;
+    animation-name: dotBounce;
+    animation-duration: 1.1s;
+}
+@keyframes dotBounce {
+    0%, 80%, 100% { opacity: 0.5; transform: translateY(0); }
+    40% { opacity: 1; transform: translateY(-3px); }
+}
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.stAlert [data-testid="stAlertContentError"] { color: var(--error) !important; }
+.stAlert [data-testid="stAlertContentWarning"] { color: var(--warning) !important; }
+.stSpinner > div { border-top-color: var(--accent) !important; }
+::-webkit-scrollbar-thumb { background: #CBD5E1 !important; border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8 !important; }
+
+body:has([data-testid="stToggle"] [role="switch"][aria-checked="true"]) {
+    color-scheme: dark;
+    --canvas: #0B1730;
+    --surface: #102347;
+    --surface-muted: #173461;
+    --sidebar: #08152D;
+    --text-primary: #F8FAFC;
+    --text-secondary: #D5E5FF;
+    --text-placeholder: #9DB8E2;
+    --accent: #60A5FA;
+    --accent-hover: #93C5FD;
+    --ai-accent: #60A5FA;
+    --border-subtle: #294B7B;
+    --surface-raised: var(--surface);
+    --shadow-soft: 0 1px 3px rgba(0,0,0,0.28);
+}
+body:has([data-testid="stToggle"] [role="switch"][aria-checked="true"])
+  .stChatInputContainer { background: rgba(11,18,32,0.94) !important; }
+body:has([data-testid="stToggle"] [role="switch"][aria-checked="true"])
+  [data-testid="stSidebar"] .stButton button:hover {
+    background: rgba(248,250,252,0.14) !important;
+}
+
+/* ─────────────────────────────────────────
+   BLUE IDENTITY AND HIGH-CLARITY TYPOGRAPHY
+───────────────────────────────────────── */
+html, body, [class*="css"], button, input, textarea,
+[data-testid="stMarkdownContainer"] {
+    font-family: var(--font-body) !important;
+}
+body, [data-testid="stMarkdownContainer"] p,
+[data-testid="stChatMessageContent"] p,
+.suggest-card-text, .welcome-sub {
+    font-weight: 500 !important;
+}
+.db-header {
+    background: #163B78 !important;
+    border-color: #1D4ED8 !important;
+    box-shadow: 0 4px 14px rgba(29,78,216,0.16) !important;
+}
+.db-college-name { color: #FFFFFF !important; font-weight: 700 !important; }
+.db-college-location, .db-header-tagline { color: #DBEAFE !important; font-weight: 500 !important; }
+.db-header-tagline::after { content: none !important; }
+.db-live-badge {
+    color: #FFFFFF !important;
+    background: rgba(255,255,255,0.12) !important;
+    border-color: rgba(255,255,255,0.3) !important;
+    font-weight: 700 !important;
+}
+.welcome-title {
+    color: var(--accent) !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.025em !important;
+}
+.welcome-sub { color: var(--text-secondary) !important; }
+.suggest-card {
+    border-color: #BFDBFE !important;
+    box-shadow: 0 2px 8px rgba(30,64,175,0.06) !important;
+}
+.suggest-card:hover {
+    background: #EFF6FF !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 4px 12px rgba(30,64,175,0.14) !important;
+}
+.suggest-card-text { color: var(--text-primary) !important; font-weight: 600 !important; }
+.suggest-card-icon { color: var(--accent) !important; }
+.stChatMessage {
+    border-color: var(--border-subtle) !important;
+    box-shadow: 0 2px 8px rgba(30,64,175,0.07) !important;
+}
+[data-testid="stChatMessageContent"] {
+    color: var(--text-primary) !important;
+    font-weight: 500 !important;
+}
+[data-testid="stChatMessageContent"] strong,
+[data-testid="stChatMessageContent"] h1,
+[data-testid="stChatMessageContent"] h2,
+[data-testid="stChatMessageContent"] h3,
+[data-testid="stChatMessageContent"] h4 {
+    color: var(--accent-hover) !important;
+    font-weight: 700 !important;
+}
+.stChatInputContainer textarea { font-weight: 500 !important; }
+.stChatInputContainer textarea:focus {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.2) !important;
+}
+.stChatInputContainer button {
+    background: var(--accent) !important;
+    border-color: var(--accent) !important;
+    font-weight: 700 !important;
+}
+.stChatInputContainer button:hover {
+    background: var(--accent-hover) !important;
+    border-color: var(--accent-hover) !important;
+}
+[data-testid="stSidebar"] {
+    background: var(--sidebar) !important;
+    border-right-color: #1E3A66 !important;
+}
+[data-testid="stSidebar"] h3 {
+    color: #BFDBFE !important;
+    font-weight: 700 !important;
+}
+[data-testid="stSidebar"] .stButton button {
+    border-color: rgba(191,219,254,0.24) !important;
+    font-weight: 600 !important;
+}
+[data-testid="stSidebar"] .stButton button:hover {
+    background: rgba(37,99,235,0.28) !important;
+    border-color: #60A5FA !important;
+}
+.qs-chip { font-weight: 600 !important; }
+.status-pill {
+    color: #DBEAFE !important;
+    background: rgba(37,99,235,0.26) !important;
+    border-color: rgba(147,197,253,0.46) !important;
+    font-weight: 700 !important;
+}
+.cache-badge { color: var(--text-secondary) !important; font-weight: 600 !important; }
+button:focus-visible, textarea:focus-visible, input:focus-visible,
+[role="switch"]:focus-visible {
+    outline-color: #3B82F6 !important;
+}
+body:has([data-testid="stToggle"] [role="switch"][aria-checked="true"]) .db-header {
+    background: #102B55 !important;
+    border-color: #3B82F6 !important;
+}
+body:has([data-testid="stToggle"] [role="switch"][aria-checked="true"]) .suggest-card:hover {
+    background: #173461 !important;
+}
+body:has([data-testid="stToggle"] [role="switch"][aria-checked="true"]) .stChatInputContainer {
+    background: rgba(11,23,48,0.96) !important;
+}
+body:has([data-testid="stToggle"] [role="switch"][aria-checked="true"])
+  [data-testid="stChatMessageContent"] h1,
+body:has([data-testid="stToggle"] [role="switch"][aria-checked="true"])
+  [data-testid="stChatMessageContent"] h2,
+body:has([data-testid="stToggle"] [role="switch"][aria-checked="true"])
+  [data-testid="stChatMessageContent"] h3,
+body:has([data-testid="stToggle"] [role="switch"][aria-checked="true"])
+  [data-testid="stChatMessageContent"] h4 {
+    color: #93C5FD !important;
+}
+
+/* ─────────────────────────────────────────
+   RESPONSIVE LAYOUT REFINEMENTS
+───────────────────────────────────────── */
+[data-testid="stMainBlockContainer"] {
+    width: min(100%, 1360px) !important;
+    max-width: 1360px !important;
+    padding: 1.25rem clamp(1rem, 3vw, 2.5rem) 7.5rem !important;
+}
+.db-header {
+    width: 100%;
+    max-width: none;
+    margin: 0 auto 1.25rem !important;
+}
+.welcome-wrap {
+    width: 100%;
+    max-width: 1000px;
+    padding-top: clamp(1rem, 4vh, 2.5rem) !important;
+}
+.suggest-grid {
+    width: 100%;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+.suggest-card {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.stChatInputContainer {
+    z-index: 100;
+    padding: 0.75rem clamp(1rem, 3vw, 2.5rem) 1rem !important;
+}
+.stChatInputContainer textarea {
+    min-height: 48px !important;
+}
+[data-testid="stChatMessageContent"] table { width: 100%; }
+
+@media (min-width: 1440px) {
+    [data-testid="stMainBlockContainer"] { max-width: 1440px !important; }
+    .welcome-wrap { max-width: 1080px; }
+}
+@media (min-width: 641px) and (max-width: 1024px) {
+    [data-testid="stMainBlockContainer"] {
+        padding: 1rem 1.25rem 7rem !important;
+    }
+    .suggest-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    .welcome-wrap { padding-top: 1.5rem !important; }
+    .db-header-inner { padding: 1rem 1.15rem !important; }
+    .stChatInputContainer { padding-left: 1.25rem !important; padding-right: 1.25rem !important; }
+}
+@media (max-width: 640px) {
+    [data-testid="stMainBlockContainer"] {
+        padding: 0.75rem 0.75rem 6.5rem !important;
+    }
+    .db-header { margin-bottom: 0.75rem !important; border-radius: 12px !important; }
+    .db-header-inner { gap: 0.65rem; padding: 0.75rem !important; }
+    .db-header-inner > img,
+    .db-header-inner > div:first-child { width: 48px !important; height: 48px !important; }
+    .db-college-name { font-size: clamp(0.9rem, 4vw, 1.05rem) !important; }
+    .db-college-location { font-size: 0.62rem !important; line-height: 1.3 !important; }
+    .db-header-tagline { font-size: 0.72rem !important; }
+    .db-live-badge { padding: 0.2rem 0.45rem; font-size: 0.58rem !important; }
+    .welcome-wrap { padding: 1.25rem 0.25rem 1rem !important; }
+    .welcome-icon { font-size: 2.25rem !important; margin-bottom: 0.4rem !important; }
+    .welcome-title { font-size: clamp(1.65rem, 7.5vw, 2rem) !important; }
+    .welcome-sub { font-size: 0.9rem !important; margin-bottom: 1.25rem !important; }
+    .suggest-grid { grid-template-columns: 1fr !important; gap: 0.6rem !important; }
+    .suggest-card { padding: 0.8rem 0.9rem !important; }
+    .suggest-card-icon { font-size: 1rem !important; margin-bottom: 0.2rem !important; }
+    .suggest-card-text { font-size: 0.84rem !important; }
+    .stChatMessage { padding: 0.75rem !important; }
+    [data-testid="stChatMessageContent"] { font-size: 0.92rem !important; }
+    .stChatInputContainer { padding: 0.6rem 0.75rem 0.75rem !important; }
+    .stChatInputContainer textarea { font-size: 0.9rem !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+</style>
 """, unsafe_allow_html=True)
 
 # ============================================================
@@ -496,7 +1350,7 @@ st.markdown(f"""
     <div class="db-header-text">
       <div class="db-college-name">Don Bosco College of Arts &amp; Science</div>
       <div class="db-college-location">Yelagiri Hills &nbsp;·&nbsp; Tirupattur Dist &nbsp;·&nbsp; Tamil Nadu</div>
-      <div class="db-header-tagline">Handbook AI Assistant &nbsp;·&nbsp; Meta Llama 3.3 70B &nbsp;·&nbsp; 634 indexed sections</div>
+      <div class="db-header-tagline">Handbook AI Assistant</div>
     </div>
     <div class="db-live-badge">
       <span class="db-live-dot"></span> AI LIVE
@@ -866,6 +1720,7 @@ with st.sidebar:
         f'<div style="padding:0.6rem 0 0.4rem;">{sidebar_logo_html}</div>',
         unsafe_allow_html=True
     )
+    st.toggle("Dark appearance", key="dark_appearance")
     st.markdown(
         '<div style="text-align:center;">'
         '<div style="font-family:\'Playfair Display\',serif;font-size:0.95rem;'
@@ -1004,8 +1859,7 @@ if prompt := st.chat_input("Type your question about Don Bosco College handbook 
         if from_cache:
             st.markdown(
                 '<div style="margin-top:0.35rem;">'
-                '<span style="font-size:0.7rem;color:#9ca3af;background:#f3f4f6;'
-                'border-radius:10px;padding:2px 9px;border:1px solid #e5e7eb;">'
+                '<span class="cache-badge">'
                 '⚡ Instant reply</span></div>',
                 unsafe_allow_html=True
             )
@@ -1017,11 +1871,13 @@ if prompt := st.chat_input("Type your question about Don Bosco College handbook 
 <script>
 setTimeout(function(){
     var el = document.getElementById('chat-bottom');
-    if(el) el.scrollIntoView({behavior:'smooth',block:'end'});
+    var behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+    if(el) el.scrollIntoView({behavior:behavior,block:'end'});
 }, 120);
 setTimeout(function(){
     var el = document.getElementById('chat-bottom');
-    if(el) el.scrollIntoView({behavior:'smooth',block:'end'});
+    var behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+    if(el) el.scrollIntoView({behavior:behavior,block:'end'});
 }, 600);
 </script>
 """, unsafe_allow_html=True)
