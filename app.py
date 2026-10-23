@@ -1,8 +1,10 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import re
 import requests
 import base64
 import os
+from concurrent.futures import ThreadPoolExecutor
 from dotenv import load_dotenv
 
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
@@ -1268,6 +1270,11 @@ body:has([data-testid="stToggle"] [role="switch"][aria-checked="true"])
     width: 100%;
     max-width: none;
     margin: 0 auto 1.25rem !important;
+    position: fixed;
+    top: 0;
+    z-index: 1001;
+    padding-top: 0.25rem;
+    background: var(--canvas);
 }
 .welcome-wrap {
     width: 100%;
@@ -1359,6 +1366,42 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+components.html("""
+<script>
+const host = window.parent;
+const doc = host.document;
+const syncHeader = () => {
+  const header = doc.querySelector(".db-header");
+  const main = doc.querySelector('[data-testid="stMainBlockContainer"]');
+  if (!header || !main) return;
+  const rect = main.getBoundingClientRect();
+  const style = host.getComputedStyle(main);
+  const leftPadding = parseFloat(style.paddingLeft) || 0;
+  const rightPadding = parseFloat(style.paddingRight) || 0;
+  header.style.left = `${rect.left + leftPadding}px`;
+  header.style.width = `${rect.width - leftPadding - rightPadding}px`;
+  const spacer = header.closest('[data-testid="stElementContainer"]');
+  if (spacer) {
+    const marginBottom = parseFloat(host.getComputedStyle(header).marginBottom) || 0;
+    spacer.style.minHeight = `${header.offsetHeight + marginBottom}px`;
+  }
+};
+if (host.__dbcyHeaderResizeObserver) {
+  host.__dbcyHeaderResizeObserver.disconnect();
+}
+if (host.__dbcyHeaderResizeHandler) {
+  host.removeEventListener("resize", host.__dbcyHeaderResizeHandler);
+}
+syncHeader();
+host.__dbcyHeaderResizeObserver = new host.ResizeObserver(syncHeader);
+host.__dbcyHeaderResizeObserver.observe(
+  doc.querySelector('[data-testid="stMainBlockContainer"]')
+);
+host.__dbcyHeaderResizeHandler = syncHeader;
+host.addEventListener("resize", syncHeader);
+</script>
+""", height=0, scrolling=False)
+
 # ============================================================
 # CONFIGURATION  ← UNTOUCHED
 # ============================================================
@@ -1417,11 +1460,14 @@ if not st.session_state.get("db_ready"):
 # ============================================================
 # HELPERS  ← UNTOUCHED
 # ============================================================
-def run_sql(sql: str) -> list:
+def run_sql(sql: str, workspace=None, warehouse_id=None) -> list:
     try:
-        w = st.session_state.w
-        response = w.statement_execution.execute_statement(
-            warehouse_id=_get_warehouse_id(),
+        if workspace is None:
+            workspace = st.session_state.w
+        if warehouse_id is None:
+            warehouse_id = _get_warehouse_id()
+        response = workspace.statement_execution.execute_statement(
+            warehouse_id=warehouse_id,
             statement=sql,
             wait_timeout="30s"
         )
@@ -1444,9 +1490,11 @@ def _get_warehouse_id() -> str:
             st.session_state.warehouse_id = ""
     return st.session_state.warehouse_id
 
-def vsearch(query: str, n: int, seen: set) -> list:
+def vsearch(query: str, n: int, seen: set, index=None) -> list:
     try:
-        result = st.session_state.index.similarity_search(
+        if index is None:
+            index = st.session_state.index
+        result = index.similarity_search(
             query_text=query,
             columns=["chunk_text", "element_type", "chunk_id"],
             num_results=n
@@ -1549,6 +1597,9 @@ def ask_handbook(query_text: str, num_results: int = 10) -> str:
         for pat, rep in transformations:
             transformed_query = re.sub(pat, rep, transformed_query, flags=re.IGNORECASE)
         transformed_query = ' '.join(transformed_query.split())
+        workspace = st.session_state.w
+        warehouse_id = _get_warehouse_id()
+        vector_index = st.session_state.index
 
         cleaned  = re.sub(r'[^\w\s]', '', query_text)
         keywords = [w.strip() for w in cleaned.split() if len(w.strip()) > 2]
@@ -1556,8 +1607,9 @@ def ask_handbook(query_text: str, num_results: int = 10) -> str:
                     ['who','what','when','where','why','how','are','the',
                      'tell','give','show','about']]
 
-        keyword_chunks = []
-        if keywords:
+        def search_keyword_chunks():
+            if not keywords:
+                return []
             try:
                 fuzzy_conditions = []
                 for kw in keywords[:3]:
@@ -1586,9 +1638,8 @@ def ask_handbook(query_text: str, num_results: int = 10) -> str:
                     ORDER BY match_score, chunk_id
                     LIMIT {limit}
                 """
-                rows = run_sql(sql)
-                for row in rows:
-                    keyword_chunks.append(row[:3])
+                rows = run_sql(sql, workspace, warehouse_id)
+                return [row[:3] for row in rows]
             except Exception:
                 try:
                     conditions = [f"LOWER(chunk_text) LIKE '%{kw.lower()}%'" for kw in keywords[:3]]
@@ -1599,15 +1650,23 @@ def ask_handbook(query_text: str, num_results: int = 10) -> str:
                         WHERE {' OR '.join(conditions)}
                         LIMIT {limit}
                     """
-                    keyword_chunks = run_sql(sql)
+                    return run_sql(sql, workspace, warehouse_id)
                 except Exception:
-                    pass
+                    return []
 
-        semantic_chunks = []
-        seen_sem        = set()
-        semantic_chunks += vsearch(query_text, num_results, seen_sem)
-        if transformed_query != query_text.lower():
-            semantic_chunks += vsearch(transformed_query, num_results, seen_sem)
+        def search_semantic_chunks():
+            chunks = []
+            seen_sem = set()
+            chunks.extend(vsearch(query_text, num_results, seen_sem, vector_index))
+            if transformed_query != query_text.lower():
+                chunks.extend(vsearch(transformed_query, num_results, seen_sem, vector_index))
+            return chunks
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            keyword_future = executor.submit(search_keyword_chunks)
+            semantic_future = executor.submit(search_semantic_chunks)
+            keyword_chunks = keyword_future.result()
+            semantic_chunks = semantic_future.result()
 
         expanded_chunks     = []
         chunk_ids_to_expand = set()
@@ -1635,7 +1694,7 @@ def ask_handbook(query_text: str, num_results: int = 10) -> str:
                         WHERE {' OR '.join(conditions)}
                         ORDER BY CAST(SUBSTRING(chunk_id, 7) AS INT)
                     """
-                    for row in run_sql(sql):
+                    for row in run_sql(sql, workspace, warehouse_id):
                         expanded_chunks.append([row[1], row[2], row[0]])
             except Exception:
                 pass
@@ -1739,18 +1798,19 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-    st.markdown("---")
-    st.markdown("### 💬 Quick Questions")
-    chips = [
-        "Who is Baskar?", "IQAC Coordinator", "CS faculty names",
-        "College Vision", "College Anthem", "Attendance policy",
-        "Hostel facilities", "Examination rules", "College Mission",
-        "When is College Day?"
-    ]
-    st.markdown(
-        "".join(f'<span class="qs-chip">{c}</span>' for c in chips),
-        unsafe_allow_html=True
-    )
+    if not st.session_state.messages:
+        st.markdown("---")
+        st.markdown("### 💬 Quick Questions")
+        chips = [
+            "Who is Baskar?", "IQAC Coordinator", "CS faculty names",
+            "College Vision", "College Anthem", "Attendance policy",
+            "Hostel facilities", "Examination rules", "College Mission",
+            "When is College Day?"
+        ]
+        st.markdown(
+            "".join(f'<span class="qs-chip">{c}</span>' for c in chips),
+            unsafe_allow_html=True
+        )
 
     st.markdown("---")
     st.markdown("### ℹ️ System Info")
@@ -1820,22 +1880,21 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"], avatar=avatar):
         st.markdown(message["content"])
 
-# Bottom anchor for auto-scroll
-st.markdown('<div id="chat-bottom"></div>', unsafe_allow_html=True)
-
 # ============================================================
-# CHAT INPUT
+# CHAT PROCESSING AND INPUT
 # ============================================================
 if prompt := st.chat_input("Type your question about Don Bosco College handbook here…"):
     st.session_state.messages.append({"role": "user", "content": prompt})
+    st.session_state.pending_prompt = prompt
+    st.rerun()
 
-    with st.chat_message("user", avatar="🧑‍🎓"):
-        st.markdown(prompt)
-
+if pending_prompt := st.session_state.pop("pending_prompt", None):
     with st.chat_message("assistant", avatar="🤖"):
-        # Check cache/greeting first — show thinking only if backend needed
-        cache_key = _normalise(prompt)
-        is_instant = (cache_key in _GREETINGS) or (cache_key in st.session_state.response_cache)
+        cache_key = _normalise(pending_prompt)
+        is_instant = (
+            cache_key in _GREETINGS
+            or cache_key in st.session_state.response_cache
+        )
 
         if not is_instant:
             thinking_placeholder = st.empty()
@@ -1848,7 +1907,7 @@ if prompt := st.chat_input("Type your question about Don Bosco College handbook 
 </div>
 """, unsafe_allow_html=True)
 
-        response, from_cache = get_response(prompt)
+        response, from_cache = get_response(pending_prompt)
 
         if not is_instant:
             thinking_placeholder.empty()
@@ -1865,19 +1924,27 @@ if prompt := st.chat_input("Type your question about Don Bosco College handbook 
             )
 
     st.session_state.messages.append({"role": "assistant", "content": response})
+    st.markdown('<div id="chat-bottom"></div>', unsafe_allow_html=True)
 
-    # Scroll to bottom after new answer
-    st.markdown("""
+    components.html("""
 <script>
-setTimeout(function(){
-    var el = document.getElementById('chat-bottom');
-    var behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
-    if(el) el.scrollIntoView({behavior:behavior,block:'end'});
-}, 120);
-setTimeout(function(){
-    var el = document.getElementById('chat-bottom');
-    var behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
-    if(el) el.scrollIntoView({behavior:behavior,block:'end'});
-}, 600);
+const scrollToLatestMessage = () => {
+  const doc = window.parent.document;
+  const target = doc.getElementById("chat-bottom");
+  if (!target) return;
+  const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ? "auto"
+    : "smooth";
+  for (let container = target.parentElement; container; container = container.parentElement) {
+    const overflowY = window.parent.getComputedStyle(container).overflowY;
+    if (container.scrollHeight > container.clientHeight && /auto|scroll/.test(overflowY)) {
+      container.scrollTo({ top: container.scrollHeight, behavior });
+      return;
+    }
+  }
+  target.scrollIntoView({ behavior, block: "end" });
+};
+setTimeout(scrollToLatestMessage, 100);
+setTimeout(scrollToLatestMessage, 450);
 </script>
-""", unsafe_allow_html=True)
+""", height=0, scrolling=False)
