@@ -1,6 +1,7 @@
 streamlit
 databricks-sdk
 databricks-vectorsearch
+pypdf
 rapidfuzz
 requests
 python-dotenv
